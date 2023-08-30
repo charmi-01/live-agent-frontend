@@ -1,23 +1,30 @@
-import logo from './logo.svg';
-import './App.css';
+import React, {  useState } from 'react';
+// import './App.css'; // You can style your components using CSS
+import ContactList from './components/ContactList';
+import ChatWindow from './components/ChatWindow';
+import { Grid, GridItem, Box } from '@chakra-ui/react';
+
 
 function App() {
+  const [selectedContact, setSelectedContact] = useState(null);
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+      <Grid templateColumns='repeat(6, 1fr)'>
+        <GridItem colSpan={2}>
+        <Box p={4}>
+          <ContactList
+            onSelectContact={contact => setSelectedContact(contact)}
+          />
+        </Box>
+        </GridItem>
+        <GridItem colSpan={4}>
+        <Box p={4}>
+          {selectedContact && (
+            <ChatWindow selectedContact={selectedContact} />
+          )}
+        </Box>
+        </GridItem>
+      </Grid>
     </div>
   );
 }
