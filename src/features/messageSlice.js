@@ -4,6 +4,7 @@ import axios from "axios";
 export const getMessageList = createAsyncThunk(
   'getMessageList',
   async (phoneNumber) => {
+    
     const res = await axios.get('https://live-agent-backend.onrender.com/api/messages/'+phoneNumber)
     return res.data
   })
@@ -14,12 +15,18 @@ const messageSlice = createSlice({
   initialState: {
     messageList:[],
     conversationId:'',
-    expirationTime:''
+    expirationTime:'',
+    isLoading:false
   },
   reducers: {
   },
   extraReducers: (builder) => {
-    builder.addCase(getMessageList.fulfilled, (state,action) => {
+    builder
+    .addCase(getMessageList.pending, (state) => {
+      state.isLoading = true;
+    })
+    .addCase(getMessageList.fulfilled, (state,action) => {
+      state.isLoading = false;
       state.messageList=action.payload
       // Find the last message with conversationId
       const lastMessageWithConversation = action.payload
@@ -35,6 +42,7 @@ const messageSlice = createSlice({
         state.expirationTime=''
       }
     })
+    
   },
 });
 

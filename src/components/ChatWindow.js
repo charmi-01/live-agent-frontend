@@ -1,5 +1,5 @@
-import React, { useEffect, useState,useRef, useLayoutEffect } from 'react';
-import { Heading, Box, InputGroup, Input, InputRightElement, Text, HStack, VStack } from '@chakra-ui/react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { Heading, Box, InputGroup, Input, InputRightElement, Text, HStack, VStack, Spinner } from '@chakra-ui/react';
 import { FiSend } from "react-icons/fi"
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
@@ -13,7 +13,17 @@ const socket = io.connect("https://webhook-pbyy.onrender.com")
 function ChatWindow({ selectedContact }) {
     const [reply, setReply] = useState('')
     const dispatch = useDispatch()
-    const messageContainerRef = useRef(null);
+    const messageContainerRef = useRef();
+
+    const scrollToBottom = () => {
+        if (messageContainerRef.current) {
+            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom(); // Initial scroll to bottom when component is loaded
+    }, []);
 
 
     useEffect(() => {
@@ -23,19 +33,10 @@ function ChatWindow({ selectedContact }) {
         socket.on("webhookNotificationMessage", (data) => {
             dispatch(getMessageList(selectedContact.phoneNumber))
         })
-        if (messageContainerRef.current) {
-            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight - messageContainerRef.current.clientHeight;
-        }
     }, [selectedContact, dispatch]);
 
-    useLayoutEffect(() => {
-        if (messageContainerRef.current) {
-            messageContainerRef.current.scrollTop =
-                messageContainerRef.current.scrollHeight -
-                messageContainerRef.current.clientHeight;
-        }
-    }, []);
 
+    const isLoading = useSelector((state) => state.message.isLoading)
     const messageList = useSelector((state) => state.message.messageList);
     const conversationId = useSelector((state) => state.message.conversationId);
     const expirationTime = useSelector((state) => state.message.expirationTime);
@@ -43,6 +44,9 @@ function ChatWindow({ selectedContact }) {
     const expirationDate = new Date(Number(expirationTime) * 1000);
     const formattedExpirationDate = expirationDate.toLocaleString(); // Adjust this as per your preference
 
+    useEffect(() => {
+        scrollToBottom(); // Scroll to bottom when messageList is updated
+    }, [messageList]);
 
 
     const sendMessage = async () => {
@@ -52,14 +56,11 @@ function ChatWindow({ selectedContact }) {
                     to: selectedContact.phoneNumber,
                     content: reply,
                 });
-                if (messageContainerRef.current) {
-                    messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight - messageContainerRef.current.clientHeight;
-                }
                 setReply('');
                 console.log(response.data.message)
                 // alert(response.data.message)
             } catch (error) {
-                console.error(error); 
+                console.error(error);
                 alert(error)
             }
         }
@@ -75,30 +76,50 @@ function ChatWindow({ selectedContact }) {
                     Chat with {selectedContact.name}
                 </Heading>
                 {
-                    conversationId!=='' &&
+                    conversationId !== '' &&
                     <VStack>
-                    <Text>{conversationId}</Text>
-                    <Text>{formattedExpirationDate}</Text>
+                        <Text>{conversationId}</Text>
+                        <Text>{formattedExpirationDate}</Text>
                     </VStack>
                 }
             </Box>
-            <Box className="messageContainer" ref={messageContainerRef} height='75vh' overflowY={'scroll'}  >
-                {messageList.map((message, index) => (
-                    <Box key={index} className="message" borderRadius={'20px'} p={'1rem'} bg={'gray.100'} width={'60%'} my={'1rem'} ml={'1rem'} display={'flex'}
-                    justifyContent={'space-between'} alignItems={'center'}>
-                        <Text>{message.text} </Text>
-                        <HStack>
+            {isLoading ?
+                <Box height='75vh' w={"100%"} position={'relative'}>
+                    <Spinner
+                        thickness='4px'
+                        speed='0.65s'
+                        emptyColor='gray.200'
+                        color='blue.500'
+                        size='xl'
+                        position='absolute'
+                        top='50%'
+                        left='50%'
+                        transform='translate(-50%, -50%)'
+                    />
+                </Box>
+                :
+                <Box className="messageContainer" ref={messageContainerRef} height='75vh' w={"100%"} overflowY={'scroll'} position={'relative'}  >
+                    {
+                        messageList.map((message, index) => (
+                            <Box key={index} width={'100%'}>
+                            <Box  className="message" borderRadius={'20px'} p={'1rem'} bg={'gray.100'} width={'50%'} my={'1rem'} ml={message.status?'49%':'1rem'}   display={'flex'}
+                                justifyContent={'space-between'} alignItems={'center'}>
+                                <Text>{message.text} </Text>
+                                <HStack>
 
-                        {message.status &&
-                        
-                        <Text>
-                            {message.status}
-                        </Text>}
-                        <Text>{format(new Date(Number(message.timestamp) * 1000), "h:mm a d MMMM")}</Text>
-                        </HStack>
-                    </Box>
-                ))}
-            </Box>
+                                    {message.status &&
+
+                                        <Text>
+                                            {message.status}
+                                        </Text>}
+                                    <Text>{format(new Date(Number(message.timestamp) * 1000), "h:mm a d MMMM")}</Text>
+                                </HStack>
+                            </Box>
+                            </Box>
+                        ))
+                    }
+                </Box>
+            }
             <Box className='messageSender'>
                 <InputGroup size='lg'>
                     <Input
