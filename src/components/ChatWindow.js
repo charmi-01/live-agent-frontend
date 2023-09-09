@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Heading, Box, InputGroup, Input, InputRightElement, Text, HStack, VStack, Spinner } from '@chakra-ui/react';
 import { FiSend } from "react-icons/fi"
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
-import { getMessageList } from '../features/messageSlice';
+import { getMessageList, updateMessageList } from '../features/messageSlice';
 import axios from 'axios';
 import { format } from 'date-fns';
 
@@ -22,7 +22,7 @@ function ChatWindow({ selectedContact }) {
     };
 
     useEffect(() => {
-        scrollToBottom(); // Initial scroll to bottom when component is loaded
+        scrollToBottom();
     }, []);
 
 
@@ -30,10 +30,14 @@ function ChatWindow({ selectedContact }) {
         dispatch(
             getMessageList(selectedContact.phoneNumber)
         )
-        socket.on("webhookNotificationMessage", (data) => {
-            dispatch(getMessageList(selectedContact.phoneNumber))
-        })
+        
     }, [selectedContact, dispatch]);
+
+    useEffect(()=>{
+        socket.on("webhookNotificationMessageRecieved", (data) => {
+            dispatch(updateMessageList(data))
+        })
+    },[dispatch])
 
 
     const isLoading = useSelector((state) => state.message.isLoading)
@@ -45,7 +49,7 @@ function ChatWindow({ selectedContact }) {
     const formattedExpirationDate = expirationDate.toLocaleString(); // Adjust this as per your preference
 
     useEffect(() => {
-        scrollToBottom(); // Scroll to bottom when messageList is updated
+        scrollToBottom(); 
     }, [messageList]);
 
 
